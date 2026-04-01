@@ -7,9 +7,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -18,8 +15,8 @@ Route::middleware('auth')->group(function () {
     
 });
 // Public form routes
-Route::get('/submit', [App\Http\Controllers\SubmissionController::class, 'create'])->name('submission.create');
-Route::post('/submit', [App\Http\Controllers\SubmissionController::class, 'store'])->name('submission.store');
+Route::get('/form', [App\Http\Controllers\SubmissionController::class, 'create'])->name('submission.create');
+Route::post('/form', [App\Http\Controllers\SubmissionController::class, 'store'])->name('submission.store');
 require __DIR__.'/auth.php';
 // Admin routes (protected by auth)
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
