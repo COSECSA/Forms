@@ -23,6 +23,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/dashboard', [App\Http\Controllers\AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/submissions', [App\Http\Controllers\AdminController::class, 'submissions'])->name('submissions');
     Route::get('/submissions/{submission}', [App\Http\Controllers\AdminController::class, 'show'])->name('submissions.show');
+    Route::patch('/submissions/{submission}', [App\Http\Controllers\AdminController::class, 'updateSubmission'])->name('submissions.update');
+    Route::delete('/submissions/{submission}', [App\Http\Controllers\AdminController::class, 'destroySubmission'])->name('submissions.destroy');
     Route::get('/export', [App\Http\Controllers\AdminController::class, 'export'])->name('export');
     Route::get('/trainers', [App\Http\Controllers\AdminController::class, 'trainers'])->name('trainers');
     Route::get('/trainers/export', [App\Http\Controllers\AdminController::class, 'exportTrainers'])->name('trainers.export');

@@ -64,10 +64,11 @@ class SubmissionController extends Controller
 
             // Create trainer
             $trainer = Trainer::create([
-                'name'        => $trainerData['name'],
-                'email'       => $trainerData['email'],
-                'hospital_id' => $hospital->id,
-                'program_id'  => $trainerData['program_id'],
+                'name'          => $trainerData['name'],
+                'email'         => $trainerData['email'],
+                'hospital_id'   => $hospital->id,
+                'program_id'    => $trainerData['program_id'],
+                'submission_id' => $submission->id,
             ]);
 
             // Create trainees and link to trainer

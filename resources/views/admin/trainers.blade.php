@@ -18,6 +18,7 @@
 </div>
 
 <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    @include('admin.partials.search-input', ['placeholder' => 'Search by name, email, hospital, programme…'])
     <table class="w-full text-sm">
         <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
             <tr>

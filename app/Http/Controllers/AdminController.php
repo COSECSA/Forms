@@ -30,13 +30,67 @@ class AdminController extends Controller
     }
 
     // All submissions
-    public function submissions()
+    public function submissions(Request $request)
     {
-        $submissions = Submission::with('hospital')
-            ->latest()
-            ->paginate(15);
+        $search = $request->input('search');
 
-        return view('admin.submissions', compact('submissions'));
+        $submissions = Submission::with('hospital')
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('director_name', 'like', "%{$search}%")
+                      ->orWhere('director_email', 'like', "%{$search}%")
+                      ->orWhereHas('hospital', fn($q) => $q->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        $hospitals = Hospital::orderBy('name')->get();
+
+        return view('admin.submissions', compact('submissions', 'search', 'hospitals'));
+    }
+
+    // Delete a submission along with its trainers and any trainees who become orphaned
+    public function destroySubmission(Submission $submission)
+    {
+        $trainers = Trainer::where('submission_id', $submission->id)->with('trainees')->get();
+
+        // Collect all trainee IDs linked to this submission's trainers
+        $traineeIds = $trainers->flatMap(fn($t) => $t->trainees->pluck('id'))->unique();
+
+        // Detach pivot rows and delete trainers
+        foreach ($trainers as $trainer) {
+            $trainer->trainees()->detach();
+            $trainer->delete();
+        }
+
+        // Delete trainees that are now orphaned (no remaining trainer links)
+        Trainee::whereIn('id', $traineeIds)
+            ->whereDoesntHave('trainers')
+            ->delete();
+
+        $submission->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
+    // Inline update of submission director + hospital fields
+    public function updateSubmission(Request $request, Submission $submission)
+    {
+        $data = $request->validate([
+            'director_name'  => 'required|string|max:255',
+            'director_email' => 'required|email|max:255',
+            'hospital_id'    => 'required|exists:hospitals,id',
+        ]);
+
+        $submission->update($data);
+
+        return response()->json([
+            'director_name'  => $submission->director_name,
+            'director_email' => $submission->director_email,
+            'hospital_name'  => $submission->hospital->name,
+        ]);
     }
 
     // Single submission detail
@@ -52,23 +106,45 @@ class AdminController extends Controller
     }
 
     // Trainers report
-    public function trainers()
+    public function trainers(Request $request)
     {
-        $trainers = Trainer::with(['hospital', 'program', 'trainees'])
-            ->orderBy('name')
-            ->paginate(20);
+        $search = $request->input('search');
 
-        return view('admin.trainers', compact('trainers'));
+        $trainers = Trainer::with(['hospital', 'program', 'trainees'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhereHas('hospital', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                      ->orWhereHas('program', fn($q) => $q->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.trainers', compact('trainers', 'search'));
     }
 
     // Trainees report
-    public function trainees()
+    public function trainees(Request $request)
     {
-        $trainees = Trainee::with(['trainers.hospital', 'trainers.program'])
-            ->orderBy('name')
-            ->paginate(20);
+        $search = $request->input('search');
 
-        return view('admin.trainees', compact('trainees'));
+        $trainees = Trainee::with(['trainers.hospital', 'trainers.program'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('pen', 'like', "%{$search}%")
+                      ->orWhere('nationality', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.trainees', compact('trainees', 'search'));
     }
 
     // Export trainers as CSV
